@@ -1,26 +1,23 @@
-Synote: Lightweight Collaborative Editor
 
+# Synote: Lightweight Collaborative Editor
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
+**Synote** is a lightweight, Notion-inspired collaborative editor that enables real-time document collaboration with rich text editing capabilities. Designed for teams and knowledge workers who need a simple yet powerful writing experience.
 
+![Synote Editor Interface Showcase](https://via.placeholder.com/1200x600?text=Synote+Editor+Interface+Showcase)
 
+## ✨ Key Features
 
-Synote is a lightweight, Notion-inspired collaborative editor that enables real-time document collaboration with rich text editing capabilities. Designed for teams and knowledge workers who need a simple yet powerful writing experience.
-
-
-
-✨ Key Features
-
-Rich Text Editing
-
+### Rich Text Editing
 - Basic formatting: Bold, italic, colors, headings (H1-H6), lists, tables, dividers
-- Markdown shortcuts: # Headings, - [ ] Todo lists, and other quick formatting
+- Markdown shortcuts: `#` Headings, `- [ ]` Todo lists, and other quick formatting
 - Media embedding: Drag-and-drop images, paste screenshots (auto Base64), video links
 - Templates: Pre-built templates for meeting notes, reading notes, and more
 - Word count: Real-time character and word statistics
-- Keyboard shortcuts: Ctrl+B for bold, / for insert menu, etc.
+- Keyboard shortcuts: Ctrl+B for bold, `/` for insert menu, etc.
 
-Document & Workspace Management
-
+### Document & Workspace Management
 - Multiple workspaces: Organize documents by projects or topics
 - Favorites: Star important documents for quick access
 - Recent files: Last 10 edited documents with timestamp
@@ -28,8 +25,7 @@ Document & Workspace Management
 - Recycle bin: 7-day retention for deleted documents
 - Search: Find documents by title or content
 
-Real-time Collaboration
-
+### Real-time Collaboration
 - Multi-user editing: See others' changes in real-time
 - Presence indicators: Visual status (online/offline) for collaborators
 - Permission levels: Owner (full control), Editor (modify), Viewer (read-only)
@@ -37,77 +33,74 @@ Real-time Collaboration
 - Version history: Daily snapshots with text diff comparison
 - Invitations: Share documents via email links
 
-UX Enhancements
-
+### UX Enhancements
 - Theme switching: Light/dark mode support
 - Auto-save indicator: Visual confirmation of saved changes
 - Outline navigation: Document structure sidebar (H1-H6)
 - Responsive design: Optimized for desktop (3-column) and mobile (full-screen)
 
-Import/Export
-
+### Import/Export
 - Smart paste: Clean formatting from Word/HTML content
 - Export options: PDF (preserves layout) and Markdown formats
 
-🚀 Getting Started
+## 🚀 Getting Started
 
-Prerequisites
-
+### Prerequisites
 - Node.js v18+
 - PostgreSQL
 - Redis
 
-Installation
+### Installation
 
-Clone repository
+#### Clone repository
+```bash
+git clone https://github.com/yourname/Synote.git
+cd Synote
+```
 
-    git clone https://github.com/yourname/Synote.git
-    cd Synote
+#### Install dependencies
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
 
-Install dependencies
+#### Configure environment variables
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
 
-    cd backend && npm install
-    cd ../frontend && npm install
+#### Start development servers
+```bash
+cd backend && npm run start:dev
+cd frontend && npm run dev
+```
 
-Configure environment variables
+Access the editor at: [http://localhost:3000](http://localhost:3000)
 
-    cp backend/.env.example backend/.env
-    cp frontend/.env.example frontend/.env
-
-Start development servers
-
-    cd backend && npm run start:dev
-    cd frontend && npm run dev
-
-Access the editor at: http://localhost:3000
-
-🛠️ Tech Stack
-
+## 🛠️ Tech Stack
 - Frontend: Vue 3 + TypeScript + Pinia + TipTap (ProseMirror)
 - Backend: NestJS + Socket.IO + PostgreSQL
 - Real-time Collaboration: Yjs (CRDT)
 - AI Integration: LangChain + OpenAI API
 - Deployment: Docker + Kubernetes
 
-🌐 Live Demo
+## 🌐 Live Demo
+- Experience Synote: [https://synote.app](https://synote.app)
+- Documentation: [https://docs.synote.app](https://docs.synote.app)
 
-- Experience Synote: https://synote.app
-- Documentation: https://docs.synote.app
-
-🤝 Contributing
-
+## 🤝 Contributing
 We welcome contributions! Please follow these steps:
 
 1. Fork the repository
-2. Create your feature branch (git checkout -b feat/your-feature)
-3. Commit your changes (git commit -m 'Add some feature')
-4. Push to the branch (git push origin feat/your-feature)
+2. Create your feature branch (`git checkout -b feat/your-feature`)
+3. Commit your changes (`git commit -m 'Add some feature'`)
+4. Push to the branch (`git push origin feat/your-feature`)
 5. Open a pull request
 
-See our Contribution Guidelines for details.
+See our [Contribution Guidelines](https://docs.synote.app) for details.
 
-📄 License
-
+## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-Synote - Collaborative writing made simple. ✍️🤝
+**Synote** - Collaborative writing made simple. ✍️🤝
