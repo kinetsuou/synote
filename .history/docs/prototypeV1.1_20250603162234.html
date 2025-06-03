@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synote - 多人协作富文本编辑器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        synote: {
+                            bg: '#ffffff',
+                            sidebar: '#f7f6f3',
+                            border: '#e9e9e7',
+                            text: '#37352f',
+                            textLight: '#6b6b6b',
+                            hover: '#efefef',
+                            active: '#e3f2fd',
+                            activeText: '#1976d2',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer components {
+            .sidebar-item {
+                @apply flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-synote-textLight hover:bg-synote-hover text-sm;
+            }
+            .sidebar-item.active {
+                @apply bg-synote-active text-synote-activeText;
+            }
+            .toolbar-btn {
+                @apply p-1.5 rounded hover:bg-synote-hover text-synote-textLight;
+            }
+            .toolbar-btn.active {
+                @apply bg-synote-active text-synote-activeText;
+            }
+            .status-dot {
+                @apply w-2 h-2 rounded-full;
+            }
+            .status-online {
+                @apply bg-green-500;
+            }
+            .status-offline {
+                @apply bg-gray-400;
+            }
+            .status-syncing {
+                @apply bg-yellow-500;
+            }
+            .mention-item {
+                @apply flex items-center gap-2 p-2 hover:bg-synote-hover cursor-pointer;
+            }
+            .outline-item {
+                @apply py-1 px-2 rounded-md cursor-pointer text-sm hover:bg-synote-hover;
+            }
+            .outline-h1 {
+                @apply font-semibold;
+            }
+            .outline-h2 {
+                @apply ml-3 text-[13px];
+            }
+            .outline-h3 {
+                @apply ml-6 text-xs text-synote-textLight;
+            }
+            .modal {
+                @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+            }
+            .modal-content {
+                @apply bg-white rounded-lg shadow-xl max-w-md w-full p-4;
+            }
+        }
+    </style>
+</head>
+<body class="bg-synote-bg text-synote-text">
+    <!-- 主应用容器 -->
+    <div class="flex h-screen overflow-hidden" id="app-container">
+        <!-- 左侧边栏 -->
+        <div id="left-sidebar" class="w-64 bg-synote-sidebar border-r border-synote-border flex flex-col transition-all duration-200 ease-in-out">
+            <!-- 工作区选择器 -->
+            <div class="p-3 border-b border-synote-border">
+                <div class="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-synote-hover">
+                    <div class="w-5 h-5 bg-primary-500 rounded flex items-center justify-center text-white text-xs font-semibold">S</div>
+                    <span class="flex-1">Synote工作区</span>
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+
+            <!-- 导航菜单 -->
+            <div class="flex-1 overflow-y-auto p-2">
+                <!-- 主导航 -->
+                <div class="mb-4">
+                    <div class="sidebar-item active">
+                        <i class="fas fa-home"></i>
+                        <span>主页</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="fas fa-search"></i>
+                        <span>搜索</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="fas fa-star"></i>
+                        <span>收藏夹</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="fas fa-trash"></i>
+                        <span>回收站</span>
+                    </div>
+                </div>
+
+                <!-- 私人文档 -->
+                <div class="mb-4">
+                    <div class="sidebar-item">
+                        <i class="fas fa-user"></i>
+                        <span>私人</span>
+                    </div>
+                    <!-- 文档树 -->
+                    <div class="ml-3 mt-1 space-y-0.5">
+                        <div class="sidebar-item active">
+                            <i class="fas fa-file-alt text-xs"></i>
+                            <span class="flex-1 truncate">Synote软件需求说明书</span>
+                            <div class="status-dot status-online"></div>
+                        </div>
+                        <div class="sidebar-item">
+                            <i class="fas fa-file-alt text-xs"></i>
+                            <span class="flex-1 truncate">Synote概要设计说明书</span>
+                            <div class="status-dot status-offline"></div>
+                        </div>
+                        <div class="sidebar-item">
+                            <i class="fas fa-file-alt text-xs"></i>
+                            <span class="flex-1 truncate">前端代码规范</span>
+                            <div class="status-dot status-syncing"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 团队协作区 -->
+                <div class="mb-4">
+                    <div class="sidebar-item">
+                        <i class="fas fa-users"></i>
+                        <span>团队协作区</span>
+                    </div>
+                    <!-- 文档树 -->
+                    <div class="ml-3 mt-1 space-y-0.5">
+                        <div class="sidebar-item">
+                            <i class="fas fa-folder text-xs"></i>
+                            <span class="flex-1 truncate">FeBlue的工作空间</span>
+                        </div>
+                        <div class="sidebar-item">
+                            <i class="fas fa-file-alt text-xs"></i>
+                            <span class="flex-1 truncate">项目文档</span>
+                            <div class="status-dot status-online"></div>
+                        </div>
+                        <div class="sidebar-item">
+                            <i class="fas fa-file-alt text-xs"></i>
+                            <span class="flex-1 truncate">功能清单</span>
+                            <div class="status-dot status-online"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 顶部栏 -->
+            <div class="h-12 border-b border-synote-border flex items-center justify-between px-4 bg-white">
+                <!-- 面包屑导航 -->
+                <div class="flex items-center gap-2 text-sm text-synote-textLight">
+                    <span>私人</span>
+                    <span>›</span>
+                    <span>Synote软件需求说明书</span>
+                </div>
+
+                <!-- 协作栏 -->
+                <div class="flex items-center gap-3">
+                    <!-- 协作者头像 -->
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=24&h=24&q=80" 
+                             class="w-6 h-6 rounded-full border-2 border-white" alt="用户头像">
+                        <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
+                    </div>
+                    
+                    <!-- 同步状态 -->
+                    <div class="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-50 text-green-700" id="sync-status">
+                        <i class="fas fa-globe"></i>
+                        <span>已同步</span>
+                    </div>
+                    
+                    <!-- 分享按钮 -->
+                    <button class="toolbar-btn">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                    
+                    <!-- 更多选项 -->
+                    <button class="toolbar-btn">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 编辑器工具栏 -->
+            <div class="border-b border-synote-border p-2 flex items-center gap-2 bg-white sticky top-0 z-10">
+                <!-- 撤销/重做 -->
+                <div class="flex items-center gap-1 pr-2 border-r border-synote-border">
+                    <button class="toolbar-btn">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+                
+                <!-- 文本格式 -->
+                <div class="flex items-center gap-1 px-2 border-r border-synote-border">
+                    <button class="toolbar-btn active">
+                        <i class="fas fa-bold"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-italic"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-underline"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-strikethrough"></i>
+                    </button>
+                </div>
+                
+                <!-- 标题 -->
+                <div class="flex items-center gap-1 px-2 border-r border-synote-border">
+                    <button class="toolbar-btn">H1</button>
+                    <button class="toolbar-btn">H2</button>
+                    <button class="toolbar-btn">H3</button>
+                </div>
+                
+                <!-- 插入 -->
+                <div class="flex items-center gap-1 px-2 border-r border-synote-border">
+                    <button class="toolbar-btn">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-image"></i>
+                    </button>
+                    <button class="toolbar-btn">
+                        <i class="fas fa-table"></i>
+                    </button>
+                </div>
+                
+                <!-- 特殊功能 -->
+                <div class="flex items-center gap-1 px-2">
+                    <button class="toolbar-btn">@</button>
+                    <button class="toolbar-btn">/</button>
+                </div>
+            </div>
+
+            <!-- 编辑器容器 -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- 编辑器主体 -->
+                <div class="flex-1 overflow-y-auto p-10 md:px-24" id="editor-main">
+                    <!-- 文档标题 -->
+                    <input type="text" class="w-full text-4xl font-bold mb-4 bg-transparent border-none outline-none" 
+                           value="Synote软件需求说明书" placeholder="无标题">
+                    
+                    <!-- 编辑器内容 -->
+                    <div class="prose prose-lg max-w-none" contenteditable="true">
+                        <h1>1. 引言</h1>
+                        
+                        <h2>1.1 编写目的</h2>
+                        <p>本文档详细描述<strong>Synote</strong>多人协作富文本编辑器的功能需求、性能指标及系统设计，目标读者包括开发团队、项目管理者及维护人员。</p>
+                        
+                        <h2>1.2 背景</h2>
+                        <p><strong>Synote</strong>是一款轻量级多人协作富文本编辑器，定位为类Notion的基础体验工具，支持文档管理、实时协作及团队协同。</p>
+                        
+                        <ul>
+                            <li><strong>核心设计</strong>：所有文档（包括单人文档）均为实时协作文档，采用Yjs CRDT同步协议</li>
+                            <li><strong>任务提出者</strong>：产品管理团队</li>
+                            <li><strong>开发者</strong>：独立开发组</li>
+                            <li><strong>用户</strong>：知识工作者、项目团队</li>
+                            <li><strong>运行环境</strong>：Web端（Vue.js前端 + NestJS后端 + PostgreSQL + Yjs）</li>
+                        </ul>
+
+                        <h2>1.3 定义</h2>
+                        <table class="border-collapse w-full my-4">
+                            <thead class="bg-synote-sidebar">
+                                <tr>
+                                    <th class="border border-synote-border p-2 text-left">术语</th>
+                                    <th class="border border-synote-border p-2 text-left">定义</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="border border-synote-border p-2">富文本编辑</td>
+                                    <td class="border border-synote-border p-2">支持文本格式、多媒体嵌入、Markdown快捷输入的编辑能力</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-synote-border p-2">实时协作</td>
+                                    <td class="border border-synote-border p-2">多用户同步编辑同一文档，延迟低于300ms</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-synote-border p-2">离线模式</td>
+                                    <td class="border border-synote-border p-2">网络中断时自动切换至本地保存，需用户手动触发同步</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h1>2. 任务概述</h1>
+                        
+                        <h2>2.1 目标</h2>
+                        <p>开发支持多人实时协作的富文本编辑器，核心功能包括：</p>
+                        
+                        <ul>
+                            <li>富文本编辑（格式控制、多媒体嵌入）</li>
+                            <li>文档与工作区管理</li>
+                            <li>权限分级协作（编辑者/查看者/所有者）</li>
+                            <li>所有文档默认启用实时协作架构（单人文档即最小协作单元）</li>
+                            <li>离线/在线混合保存机制</li>
+                        </ul>
+
+                        <blockquote class="border-l-4 border-synote-border pl-4 my-4 text-synote-textLight italic">
+                            💡 提示：输入 "/" 可以快速插入内容块，输入 "@" 可以提及协作者
+                        </blockquote>
+                    </div>
+                </div>
+
+                <!-- 右侧边栏 -->
+                <div class="w-60 bg-synote-sidebar border-l border-synote-border p-4 overflow-y-auto hidden md:block" id="right-sidebar">
+                    <!-- 目录 -->
+                    <div class="mb-6">
+                        <h3 class="text-xs font-semibold text-synote-textLight uppercase tracking-wider mb-2">目录</h3>
+                        <div class="space-y-0.5">
+                            <div class="outline-item outline-h1">1. 引言</div>
+                            <div class="outline-item outline-h2">1.1 编写目的</div>
+                            <div class="outline-item outline-h2">1.2 背景</div>
+                            <div class="outline-item outline-h2">1.3 定义</div>
+                            <div class="outline-item outline-h1">2. 任务概述</div>
+                            <div class="outline-item outline-h2">2.1 目标</div>
+                            <div class="outline-item outline-h2">2.2 用户特点</div>
+                            <div class="outline-item outline-h2">2.3 假定和约束</div>
+                        </div>
+                    </div>
+
+                    <!-- 文档信息 -->
+                    <div class="mb-6">
+                        <h3 class="text-xs font-semibold text-synote-textLight uppercase tracking-wider mb-2">文档信息</h3>
+                        <div class="text-xs text-synote-textLight">
+                            <div class="flex justify-between mb-1">
+                                <span>创建时间</span>
+                                <span>2023-10-15</span>
+                            </div>
+                            <div class="flex justify-between mb-1">
+                                <span>最后编辑</span>
+                                <span>25分钟前</span>
+                            </div>
+                            <div class="flex justify-between mb-1">
+                                <span>字数统计</span>
+                                <span id="word-count">1,247字</span>
+                            </div>
+                            <div class="flex justify-between mb-1">
+                                <span>协作者</span>
+                                <span>1人</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 协作者 -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-synote-textLight uppercase tracking-wider mb-2">协作者</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=24&h=24&q=80" 
+                                 class="w-6 h-6 rounded-full" alt="用户头像">
+                            <div>
+                                <div class="text-sm font-medium">张三</div>
+                                <div class="text-xs text-synote-textLight">所有者 • 在线</div>
+                            </div>
+                        </div>
+                        <button class="w-full py-1.5 px-3 border border-synote-border bg-white rounded text-sm hover:bg-synote-hover transition-colors">
+                            邀请协作者
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮动操作按钮 -->
+    <button id="fab-button" class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transform hover:scale-105 transition-all z-50">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- @提及弹窗 -->
+    <div id="mention-popup" class="hidden absolute bg-white border border-synote-border rounded-lg shadow-lg p-2 z-50 w-64">
+        <div class="mention-item">
+            <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=24&h=24&q=80" 
+                 class="w-6 h-6 rounded-full" alt="用户头像">
+            <div>
+                <div class="font-medium">李四</div>
+                <div class="text-xs text-synote-textLight">编辑者</div>
+            </div>
+        </div>
+        <div class="mention-item">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=24&h=24&q=80" 
+                 class="w-6 h-6 rounded-full" alt="用户头像">
+            <div>
+                <div class="font-medium">王五</div>
+                <div class="text-xs text-synote-textLight">查看者</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文档菜单 -->
+    <div id="new-doc-menu" class="hidden absolute bg-white border border-synote-border rounded-lg shadow-lg p-2 z-50 w-64">
+        <div class="p-2 text-sm font-medium border-b border-synote-border mb-2">新建文档</div>
+        <div class="mention-item">
+            <i class="fas fa-file-alt text-primary-500"></i>
+            <span>空白文档</span>
+        </div>
+        <div class="mention-item">
+            <i class="fas fa-clipboard-list text-primary-500"></i>
+            <span>会议记录模板</span>
+        </div>
+        <div class="mention-item">
+            <i class="fas fa-book text-primary-500"></i>
+            <span>读书笔记模板</span>
+        </div>
+        <div class="mention-item">
+            <i class="fas fa-tasks text-primary-500"></i>
+            <span>项目计划模板</span>
+        </div>
+    </div>
+
+    <!-- 冲突解决模态框 -->
+    <div id="conflict-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4">检测到编辑冲突</h3>
+            <p class="mb-4">您的离线编辑与其他协作者的更改存在冲突，请选择保留版本：</p>
+            
+            <div class="border border-synote-border rounded-md mb-4">
+                <div class="bg-synote-sidebar p-2 text-sm font-medium">您的版本</div>
+                <div class="p-3 bg-green-50">
+                    <p>开发支持多人实时协作的富文本编辑器，<span class="bg-green-200">核心功能包括富文本编辑、文档管理和实时协作</span>。</p>
+                </div>
+            </div>
+            
+            <div class="border border-synote-border rounded-md mb-4">
+                <div class="bg-synote-sidebar p-2 text-sm font-medium">服务器版本</div>
+                <div class="p-3 bg-blue-50">
+                    <p>开发支持多人实时协作的富文本编辑器，<span class="bg-blue-200">核心功能包括富文本编辑、工作区管理、权限分级协作、实时协作架构和混合保存机制</span>。</p>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-2 mt-4">
+                <button class="px-4 py-2 border border-synote-border rounded hover:bg-synote-hover">保留我的版本</button>
+                <button class="px-4 py-2 border border-synote-border rounded hover:bg-synote-hover">保留服务器版本</button>
+                <button class="px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600">智能合并</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 离线模式提示 -->
+    <div id="offline-notification" class="hidden fixed top-4 right-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-md shadow-md z-50 flex items-center gap-2">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>网络连接已断开，已切换至离线模式</span>
+    </div>
+
+    <!-- 移动端菜单按钮 -->
+    <button id="mobile-menu-btn" class="md:hidden fixed top-3 left-3 z-50 bg-white border border-synote-border rounded p-2">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- 移动端侧边栏切换 -->
+    <div id="mobile-sidebar-toggle" class="md:hidden fixed bottom-6 left-6 bg-white border border-synote-border rounded-full shadow-md p-3 z-40">
+        <i class="fas fa-columns"></i>
+    </div>
+
+    <script>
+        // 模拟实时协作状态
+        function updateCollaborationStatus() {
+            const statuses = document.querySelectorAll('.status-dot');
+            const statusClasses = ['status-online', 'status-offline', 'status-syncing'];
+            
+            statuses.forEach(status => {
+                // 随机改变状态
+                if (Math.random() > 0.8) {
+                    status.className = 'status-dot ' + statusClasses[Math.floor(Math.random() * statusClasses.length)];
+                }
+            });
+        }
+
+        // 模拟同步状态更新
+        function updateSyncStatus() {
+            const syncStatus = document.getElementById('sync-status');
+            const isOnline = Math.random() > 0.1; // 90%概率在线
+            
+            if (isOnline) {
+                syncStatus.className = 'flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-50 text-green-700';
+                syncStatus.innerHTML = '<i class="fas fa-globe"></i><span>已同步</span>';
+            } else {
+                syncStatus.className = 'flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-yellow-50 text-yellow-700';
+                syncStatus.innerHTML = '<i class="fas fa-mobile-alt"></i><span>离线编辑 (待同步: 3)</span>';
+                
+                // 显示离线通知
+                document.getElementById('offline-notification').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('offline-notification').classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        // 处理@提及
+        function handleMentions() {
+            const editor = document.querySelector('[contenteditable="true"]');
+            const mentionPopup = document.getElementById('mention-popup');
+            
+            editor.addEventListener('input', function(e) {
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const text = editor.textContent;
+                
+                // 检查是否输入了@
+                if (text.includes('@')) {
+                    const rect = range.getBoundingClientRect();
+                    mentionPopup.style.display = 'block';
+                    mentionPopup.style.top = `${rect.bottom + window.scrollY + 10}px`;
+                    mentionPopup.style.left = `${rect.left + window.scrollX}px`;
+                    
+                    // 点击提及项插入用户
+                    document.querySelectorAll('.mention-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            const userName = this.querySelector('div > div:first-child').textContent;
+                            document.execCommand('insertHTML', false, `<span class="bg-blue-100 text-blue-800 px-1 rounded">@${userName}</span>&nbsp;`);
+                            mentionPopup.style.display = 'none';
+                        });
+                    });
+                } else {
+                    mentionPopup.style.display = 'none';
+                }
+            });
+            
+            // 点击其他地方关闭提及弹窗
+            document.addEventListener('click', function(e) {
+                if (!mentionPopup.contains(e.target) && e.target !== editor) {
+                    mentionPopup.style.display = 'none';
+                }
+            });
+        }
+
+        // 工具栏功能
+        function setupToolbar() {
+            const toolbarBtns = document.querySelectorAll('.toolbar-btn');
+            
+            toolbarBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 切换格式按钮的激活状态
+                    if (this.querySelector('i') && ['fa-bold', 'fa-italic', 'fa-underline', 'fa-strikethrough'].includes(this.querySelector('i').className.split(' ').pop())) {
+                        this.classList.toggle('active');
+                    }
+                    
+                    // 模拟格式操作
+                    console.log('工具栏操作:', this.textContent || this.querySelector('i').className);
+                });
+            });
+        }
+
+        // 新建文档菜单
+        function setupNewDocumentMenu() {
+            const fabButton = document.getElementById('fab-button');
+            const newDocMenu = document.getElementById('new-doc-menu');
+            
+            fabButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                newDocMenu.style.display = newDocMenu.style.display === 'block' ? 'none' : 'block';
+                newDocMenu.style.bottom = `${fabButton.offsetHeight + 16}px`;
+                newDocMenu.style.right = '24px';
+            });
+            
+            // 点击其他地方关闭菜单
+            document.addEventListener('click', function(e) {
+                if (!newDocMenu.contains(e.target) && e.target !== fabButton) {
+                    newDocMenu.style.display = 'none';
+                }
+            });
+            
+            // 点击菜单项创建文档
+            document.querySelectorAll('#new-doc-menu .mention-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const docType = this.querySelector('span').textContent;
+                    alert(`创建新${docType}`);
+                    newDocMenu.style.display = 'none';
+                });
+            });
+        }
+
+        // 字数统计更新
+        function updateWordCount() {
+            const content = document.querySelector('[contenteditable="true"]');
+            const wordCountElement = document.getElementById('word-count');
+            
+            if (content && wordCountElement) {
+                const text = content.textContent || content.innerText;
+                const wordCount = text.trim().split(/\s+/).length;
+                wordCountElement.textContent = `${wordCount}字`;
+            }
+        }
+
+        // 模拟冲突解决
+        function setupConflictDemo() {
+            // 随机触发冲突解决模态框
+            setTimeout(() => {
+                if (Math.random() > 0.7) { // 30%概率显示冲突
+                    document.getElementById('conflict-modal').classList.remove('hidden');
+                }
+            }, 15000); // 15秒后可能触发
+            
+            // 关闭模态框
+            document.querySelectorAll('#conflict-modal button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('conflict-modal').classList.add('hidden');
+                    // 更新同步状态为已同步
+                    const syncStatus = document.getElementById('sync-status');
+                    syncStatus.className = 'flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-50 text-green-700';
+                    syncStatus.innerHTML = '<i class="fas fa-globe"></i><span>已同步</span>';
+                });
+            });
+        }
+
+        // 移动端侧边栏切换
+        function setupMobileNavigation() {
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const leftSidebar = document.getElementById('left-sidebar');
+            const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+            const rightSidebar = document.getElementById('right-sidebar');
+            
+            // 左侧边栏切换
+            mobileMenuBtn.addEventListener('click', function() {
+                leftSidebar.classList.toggle('-translate-x-full');
+                if (rightSidebar.classList.contains('translate-x-full')) {
+                    rightSidebar.classList.add('hidden');
+                    rightSidebar.classList.remove('translate-x-full');
+                }
+            });
+            
+            // 右侧边栏切换
+            mobileSidebarToggle.addEventListener('click', function() {
+                rightSidebar.classList.toggle('hidden');
+                rightSidebar.classList.toggle('translate-x-full');
+                if (!leftSidebar.classList.contains('-translate-x-full')) {
+                    leftSidebar.classList.add('-translate-x-full');
+                }
+            });
+            
+            // 点击内容区域关闭侧边栏
+            document.getElementById('editor-main').addEventListener('click', function() {
+                if (!leftSidebar.classList.contains('-translate-x-full')) {
+                    leftSidebar.classList.add('-translate-x-full');
+                }
+                if (!rightSidebar.classList.contains('hidden')) {
+                    rightSidebar.classList.add('hidden');
+                    rightSidebar.classList.remove('translate-x-full');
+                }
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setupToolbar();
+            handleMentions();
+            setupNewDocumentMenu();
+            setupConflictDemo();
+            setupMobileNavigation();
+            
+            // 更新协作状态
+            setInterval(updateCollaborationStatus, 5000);
+            
+            // 更新同步状态
+            setInterval(updateSyncStatus, 10000);
+            
+            // 更新字数统计
+            const editor = document.querySelector('[contenteditable="true"]');
+            if (editor) {
+                editor.addEventListener('input', updateWordCount);
+                updateWordCount(); // 初始计数
+            }
+            
+            // 移动端初始化
+            if (window.innerWidth <= 768) {
+                document.getElementById('left-sidebar').classList.add('-translate-x-full');
+            }
+        });
+
+        // 处理窗口大小变化
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                document.getElementById('left-sidebar').classList.remove('-translate-x-full');
+                document.getElementById('right-sidebar').classList.remove('hidden');
+            } else {
+                document.getElementById('left-sidebar').classList.add('-translate-x-full');
+            }
+        });
+    </script>
+</body>
+</html>
