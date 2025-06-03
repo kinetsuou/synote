@@ -10,6 +10,8 @@ Thumbs.db
 .idea/                  # JetBrains IDE
 .vscode/                # VS Code 配置（除必要工作区设置）
 *.code-workspace        # VS Code 工作区文件
+.history/               # 历史记录
+.trae/                  # Traefik 配置
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
