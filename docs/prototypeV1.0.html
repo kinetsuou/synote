@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synote - Collaborative Rich Text Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            color: #37352f;
+            line-height: 1.5;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #f7f6f3;
+            border-right: 1px solid #e9e9e7;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.2s ease;
+        }
+
+        .sidebar-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e9e9e7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workspace-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .workspace-selector:hover {
+            background: #efefef;
+        }
+
+        .workspace-icon {
+            width: 20px;
+            height: 20px;
+            background: #2eaadc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .sidebar-nav {
+            padding: 8px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6b6b6b;
+        }
+
+        .nav-item:hover {
+            background: #efefef;
+        }
+
+        .nav-item.active {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .nav-icon {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .document-tree {
+            margin-top: 8px;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 12px;
+        }
+
+        .tree-item:hover {
+            background: #efefef;
+        }
+
+        .tree-item.active {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .collaboration-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: auto;
+        }
+
+        .status-online { background: #4caf50; }
+        .status-offline { background: #9e9e9e; }
+        .status-syncing { background: #ff9800; }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            height: 48px;
+            border-bottom: 1px solid #e9e9e7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: white;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6b6b6b;
+        }
+
+        .collaboration-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .collaborators {
+            display: flex;
+            align-items: center;
+            gap: -4px;
+        }
+
+        .collaborator-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            margin-left: -4px;
+            position: relative;
+        }
+
+        .collaborator-avatar:first-child {
+            margin-left: 0;
+        }
+
+        .online-indicator {
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border: 1px solid white;
+            border-radius: 50%;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #6b6b6b;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #f0f0f0;
+        }
+
+        .sync-status.online {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .sync-status.offline {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .editor-main {
+            flex: 1;
+            padding: 40px 96px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .document-title {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            border: none;
+            outline: none;
+            width: 100%;
+            background: transparent;
+            color: #37352f;
+        }
+
+        .document-title::placeholder {
+            color: #9b9a97;
+        }
+
+        .editor-content {
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 500px;
+        }
+
+        .editor-toolbar {
+            position: sticky;
+            top: 0;
+            background: white;
+            border-bottom: 1px solid #e9e9e7;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            border-right: 1px solid #e9e9e7;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-btn {
+            padding: 6px 8px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6b6b6b;
+        }
+
+        .toolbar-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .toolbar-btn.active {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        /* Right Sidebar */
+        .right-sidebar {
+            width: 240px;
+            background: #f7f6f3;
+            border-left: 1px solid #e9e9e7;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b6b6b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .outline-item {
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .outline-item:hover {
+            background: #efefef;
+        }
+
+        .outline-item.h1 { font-weight: 600; }
+        .outline-item.h2 { margin-left: 12px; font-size: 13px; }
+        .outline-item.h3 { margin-left: 24px; font-size: 12px; color: #6b6b6b; }
+
+        .document-info {
+            font-size: 12px;
+            color: #6b6b6b;
+            line-height: 1.4;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                z-index: 100;
+                height: 100vh;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .right-sidebar {
+                display: none;
+            }
+
+            .editor-main {
+                padding: 20px 16px;
+            }
+
+            .document-title {
+                font-size: 28px;
+            }
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #1976d2;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 50;
+        }
+
+        .fab:hover {
+            background: #1565c0;
+            transform: scale(1.05);
+        }
+
+        /* Mention popup */
+        .mention-popup {
+            position: absolute;
+            background: white;
+            border: 1px solid #e9e9e7;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .mention-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mention-item:hover {
+            background: #f0f0f0;
+        }
+
+        .mention-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="workspace-selector">
+                    <div class="workspace-icon">S</div>
+                    <span>Synote Workspace</span>
+                    <span style="margin-left: auto;">▼</span>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-item active">
+                        <span class="nav-icon">🏠</span>
+                        <span>主页</span>
+                    </div>
+                    <div class="nav-item">
+                        <span class="nav-icon">🔍</span>
+                        <span>搜索</span>
+                    </div>
+                    <div class="nav-item">
+                        <span class="nav-icon">⭐</span>
+                        <span>收藏夹</span>
+                    </div>
+                    <div class="nav-item">
+                        <span class="nav-icon">🗑️</span>
+                        <span>回收站</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-item">
+                        <span class="nav-icon">👤</span>
+                        <span>私人</span>
+                    </div>
+                    <div class="document-tree">
+                        <div class="tree-item active">
+                            <span>📄</span>
+                            <span>Synote软件需求说明书</span>
+                            <div class="collaboration-status status-online"></div>
+                        </div>
+                        <div class="tree-item">
+                            <span>📄</span>
+                            <span>Synote概要设计说明书</span>
+                            <div class="collaboration-status status-offline"></div>
+                        </div>
+                        <div class="tree-item">
+                            <span>📄</span>
+                            <span>前端代码规范</span>
+                            <div class="collaboration-status status-syncing"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-item">
+                        <span class="nav-icon">👥</span>
+                        <span>团队协作区</span>
+                    </div>
+                    <div class="document-tree">
+                        <div class="tree-item">
+                            <span>📁</span>
+                            <span>FeBlue的工作空间</span>
+                        </div>
+                        <div class="tree-item">
+                            <span>📄</span>
+                            <span>项目文档</span>
+                            <div class="collaboration-status status-online"></div>
+                        </div>
+                        <div class="tree-item">
+                            <span>📄</span>
+                            <span>功能清单</span>
+                            <div class="collaboration-status status-online"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <span>私人</span>
+                    <span>›</span>
+                    <span>Synote软件需求说明书</span>
+                </div>
+
+                <div class="collaboration-bar">
+                    <div class="collaborators">
+                        <img class="collaborator-avatar" src="/placeholder.svg?height=24&width=24" alt="User 1" style="background: #ff6b6b;">
+                        <div class="online-indicator"></div>
+                    </div>
+                    <div class="sync-status online">
+                        <span>🌐</span>
+                        <span>已同步</span>
+                    </div>
+                    <button class="toolbar-btn">分享</button>
+                    <button class="toolbar-btn">⋯</button>
+                </div>
+            </div>
+
+            <div class="editor-toolbar">
+                <div class="toolbar-group">
+                    <button class="toolbar-btn">↶</button>
+                    <button class="toolbar-btn">↷</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn active">B</button>
+                    <button class="toolbar-btn">I</button>
+                    <button class="toolbar-btn">U</button>
+                    <button class="toolbar-btn">S</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn">H1</button>
+                    <button class="toolbar-btn">H2</button>
+                    <button class="toolbar-btn">H3</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn">📝</button>
+                    <button class="toolbar-btn">🔗</button>
+                    <button class="toolbar-btn">📷</button>
+                    <button class="toolbar-btn">📊</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn">@</button>
+                    <button class="toolbar-btn">/</button>
+                </div>
+            </div>
+
+            <div class="editor-container">
+                <div class="editor-main">
+                    <input type="text" class="document-title" value="Synote软件需求说明书" placeholder="无标题">
+                    
+                    <div class="editor-content" contenteditable="true">
+                        <h1>1. 引言</h1>
+                        
+                        <h2>1.1 编写目的</h2>
+                        <p>本文档详细描述<strong>Synote</strong>多人协作富文本编辑器的功能需求、性能指标及系统设计，目标读者包括开发团队、项目管理者及维护人员。</p>
+                        
+                        <h2>1.2 背景</h2>
+                        <p><strong>Synote</strong>是一款轻量级多人协作富文本编辑器，定位为类Notion的基础体验工具，支持文档管理、实时协作及团队协同。</p>
+                        
+                        <ul>
+                            <li><strong>核心设计</strong>：所有文档（包括单人文档）均为实时协作文档，采用Yjs CRDT同步协议</li>
+                            <li><strong>任务提出者</strong>：产品管理团队</li>
+                            <li><strong>开发者</strong>：独立开发组</li>
+                            <li><strong>用户</strong>：知识工作者、项目团队</li>
+                            <li><strong>运行环境</strong>：Web端（Vue.js前端 + NestJS后端 + PostgreSQL + Yjs）</li>
+                        </ul>
+
+                        <h2>1.3 定义</h2>
+                        <table border="1" style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                            <tr style="background: #f7f6f3;">
+                                <th style="padding: 8px; text-align: left;">术语</th>
+                                <th style="padding: 8px; text-align: left;">定义</th>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">富文本编辑</td>
+                                <td style="padding: 8px;">支持文本格式、多媒体嵌入、Markdown快捷输入的编辑能力</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">实时协作</td>
+                                <td style="padding: 8px;">多用户同步编辑同一文档，延迟低于300ms</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">离线模式</td>
+                                <td style="padding: 8px;">网络中断时自动切换至本地保存，需用户手动触发同步</td>
+                            </tr>
+                        </table>
+
+                        <h1>2. 任务概述</h1>
+                        
+                        <h2>2.1 目标</h2>
+                        <p>开发支持多人实时协作的富文本编辑器，核心功能包括：</p>
+                        
+                        <ul>
+                            <li>富文本编辑（格式控制、多媒体嵌入）</li>
+                            <li>文档与工作区管理</li>
+                            <li>权限分级协作（编辑者/查看者/所有者）</li>
+                            <li>所有文档默认启用实时协作架构（单人文档即最小协作单元）</li>
+                            <li>离线/在线混合保存机制</li>
+                        </ul>
+
+                        <blockquote style="border-left: 4px solid #e9e9e7; padding-left: 16px; margin: 16px 0; color: #6b6b6b; font-style: italic;">
+                            💡 提示：输入 "/" 可以快速插入内容块，输入 "@" 可以提及协作者
+                        </blockquote>
+
+                        <p>这是一个支持实时协作的文档编辑器原型。您可以在这里体验：</p>
+                        <ul>
+                            <li>实时协作状态显示</li>
+                            <li>富文本编辑功能</li>
+                            <li>文档大纲导航</li>
+                            <li>协作者管理</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar -->
+                <div class="right-sidebar">
+                    <div class="sidebar-section">
+                        <h3>目录</h3>
+                        <div class="outline-item h1">1. 引言</div>
+                        <div class="outline-item h2">1.1 编写目的</div>
+                        <div class="outline-item h2">1.2 背景</div>
+                        <div class="outline-item h2">1.3 定义</div>
+                        <div class="outline-item h1">2. 任务概述</div>
+                        <div class="outline-item h2">2.1 目标</div>
+                        <div class="outline-item h2">2.2 用户特点</div>
+                        <div class="outline-item h2">2.3 假定和约束</div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3>文档信息</h3>
+                        <div class="document-info">
+                            <div class="info-row">
+                                <span>创建时间</span>
+                                <span>2023-10-15</span>
+                            </div>
+                            <div class="info-row">
+                                <span>最后编辑</span>
+                                <span>25分钟前</span>
+                            </div>
+                            <div class="info-row">
+                                <span>字数统计</span>
+                                <span>1,247字</span>
+                            </div>
+                            <div class="info-row">
+                                <span>协作者</span>
+                                <span>1人</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3>协作者</h3>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <img src="/placeholder.svg?height=24&width=24" alt="User" style="width: 24px; height: 24px; border-radius: 50%; background: #ff6b6b;">
+                            <div>
+                                <div style="font-size: 14px; font-weight: 500;">张三</div>
+                                <div style="font-size: 12px; color: #6b6b6b;">所有者 • 在线</div>
+                            </div>
+                        </div>
+                        <button style="width: 100%; padding: 6px 12px; border: 1px solid #e9e9e7; background: white; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                            邀请协作者
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="showNewDocumentMenu()">+</button>
+
+    <!-- Mention Popup -->
+    <div class="mention-popup" id="mentionPopup">
+        <div class="mention-item">
+            <img class="mention-avatar" src="/placeholder.svg?height=24&width=24" alt="User" style="background: #4caf50;">
+            <div>
+                <div style="font-weight: 500;">李四</div>
+                <div style="font-size: 12px; color: #6b6b6b;">编辑者</div>
+            </div>
+        </div>
+        <div class="mention-item">
+            <img class="mention-avatar" src="/placeholder.svg?height=24&width=24" alt="User" style="background: #2196f3;">
+            <div>
+                <div style="font-weight: 500;">王五</div>
+                <div style="font-size: 12px; color: #6b6b6b;">查看者</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Simulate real-time collaboration status
+        function updateCollaborationStatus() {
+            const statuses = document.querySelectorAll('.collaboration-status');
+            const statusClasses = ['status-online', 'status-offline', 'status-syncing'];
+            
+            statuses.forEach(status => {
+                // Randomly change status every 5 seconds
+                if (Math.random() > 0.8) {
+                    status.className = 'collaboration-status ' + statusClasses[Math.floor(Math.random() * statusClasses.length)];
+                }
+            });
+        }
+
+        // Simulate sync status updates
+        function updateSyncStatus() {
+            const syncStatus = document.querySelector('.sync-status');
+            const isOnline = Math.random() > 0.1; // 90% chance of being online
+            
+            if (isOnline) {
+                syncStatus.className = 'sync-status online';
+                syncStatus.innerHTML = '<span>🌐</span><span>已同步</span>';
+            } else {
+                syncStatus.className = 'sync-status offline';
+                syncStatus.innerHTML = '<span>📱</span><span>离线编辑 (待同步: 3)</span>';
+            }
+        }
+
+        // Handle @ mentions
+        function handleMentions() {
+            const editor = document.querySelector('.editor-content');
+            const mentionPopup = document.getElementById('mentionPopup');
+            
+            editor.addEventListener('input', function(e) {
+                const text = e.target.textContent;
+                const cursorPos = window.getSelection().getRangeAt(0).startOffset;
+                
+                if (text[cursorPos - 1] === '@') {
+                    mentionPopup.style.display = 'block';
+                    mentionPopup.style.left = '50%';
+                    mentionPopup.style.top = '50%';
+                } else {
+                    mentionPopup.style.display = 'none';
+                }
+            });
+        }
+
+        // Toolbar functionality
+        function setupToolbar() {
+            const toolbarBtns = document.querySelectorAll('.toolbar-btn');
+            
+            toolbarBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Toggle active state for formatting buttons
+                    if (['B', 'I', 'U', 'S'].includes(this.textContent)) {
+                        this.classList.toggle('active');
+                    }
+                    
+                    // Simulate formatting actions
+                    console.log('Toolbar action:', this.textContent);
+                });
+            });
+        }
+
+        // New document menu
+        function showNewDocumentMenu() {
+            alert('新建文档菜单\n\n1. 空白文档\n2. 会议记录模板\n3. 读书笔记模板\n4. 项目计划模板');
+        }
+
+        // Word count update
+        function updateWordCount() {
+            const content = document.querySelector('.editor-content');
+            const wordCountElement = document.querySelector('.info-row:nth-child(3) span:last-child');
+            
+            if (content && wordCountElement) {
+                const text = content.textContent || content.innerText;
+                const wordCount = text.trim().split(/\s+/).length;
+                wordCountElement.textContent = `${wordCount}字`;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupToolbar();
+            handleMentions();
+            
+            // Update collaboration status every 5 seconds
+            setInterval(updateCollaborationStatus, 5000);
+            
+            // Update sync status every 3 seconds
+            setInterval(updateSyncStatus, 3000);
+            
+            // Update word count on content change
+            const editor = document.querySelector('.editor-content');
+            if (editor) {
+                editor.addEventListener('input', updateWordCount);
+                updateWordCount(); // Initial count
+            }
+            
+            // Handle mobile menu
+            if (window.innerWidth <= 768) {
+                const menuBtn = document.createElement('button');
+                menuBtn.innerHTML = '☰';
+                menuBtn.style.cssText = 'position: fixed; top: 12px; left: 12px; z-index: 101; background: white; border: 1px solid #e9e9e7; border-radius: 4px; padding: 8px; cursor: pointer;';
+                menuBtn.onclick = toggleSidebar;
+                document.body.appendChild(menuBtn);
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>
